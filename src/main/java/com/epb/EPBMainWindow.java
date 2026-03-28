@@ -117,7 +117,7 @@ public class EPBMainWindow extends JFrame {
                 {"图片标注", "labelme.exe", ""},
                 {"数据可视化", "gold-data-visual.exe", ""},
                 {"EPB 识别", "epb-detection.exe", ""},
-                {"数据训练", "epb-train.exe", "【试用】"}
+                {"数据训练", "epb-train.exe", ""}
         };
 
         for (String[] config : buttonConfigs) {
@@ -237,7 +237,7 @@ public class EPBMainWindow extends JFrame {
     }
 
     private Font createDisplayFont(int style, int size) {
-        String sample = "图片标注数据训练试用";
+        String sample = "图片标注数据训练";
         String[] candidates = {
                 "Microsoft YaHei UI",
                 "Microsoft YaHei",
