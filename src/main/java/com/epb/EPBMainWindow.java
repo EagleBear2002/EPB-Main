@@ -33,15 +33,14 @@ public class EPBMainWindow extends JFrame {
     private static final Color CARD_BORDER = new Color(198, 210, 228);
 
     private static final Map<String, String> DEFAULT_RELATIVE_PATHS = Map.of(
-            "labelme.exe", "EPB\\Labelme.exe",
-            "gold-data-visual.exe", "EPB\\gold-data-visual\\dist\\system\\sysytem.exe",
-            "epb-detection.exe", "EPB\\epb-detection\\dist\\epb-system\\epb-system.exe",
-            "epb-train.exe", "EPB\\epb-train\\dist\\*.exe"
+            "Labelme.exe", ".\\Labelme.exe",
+            "system.exe", ".\\gold-data-visual\\dist\\system\\system.exe",
+            "epb-system.exe", ".\\epb-detection\\dist\\epb-system\\epb-system.exe",
+            "EPB_UI.exe", ".\\epb-train\\dist\\EPB_UI\\EPB_UI.exe"
     );
 
     private Map<String, String> programPaths;
     private ProgramLauncher launcher;
-    private ConfigManager configManager;
 
     public EPBMainWindow() {
         initializeUI();
@@ -90,7 +89,7 @@ public class EPBMainWindow extends JFrame {
                 new EmptyBorder(18, 20, 18, 20)
         ));
 
-        JLabel titleLabel = new JLabel("EPB System");
+        JLabel titleLabel = new JLabel("赤道等离子体泡智能识别模型");
         titleLabel.setFont(createDisplayFont(Font.BOLD, 28));
         titleLabel.setForeground(TITLE_TEXT);
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -98,7 +97,7 @@ public class EPBMainWindow extends JFrame {
 
         titlePanel.add(Box.createVerticalStrut(6));
 
-        JLabel subtitleLabel = new JLabel("一站式工具主菜单");
+        JLabel subtitleLabel = new JLabel("");
         subtitleLabel.setFont(createDisplayFont(Font.PLAIN, 14));
         subtitleLabel.setForeground(SUBTITLE_TEXT);
         subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -114,10 +113,10 @@ public class EPBMainWindow extends JFrame {
 
         // Button definitions: [display_name, exe_name, trial_status]
         String[][] buttonConfigs = {
-                {"图片标注", "labelme.exe", ""},
-                {"数据可视化", "gold-data-visual.exe", ""},
-                {"EPB 识别", "epb-detection.exe", ""},
-                {"数据训练", "epb-train.exe", ""}
+                {"图片标注", "Labelme.exe", ""},
+                {"数据可视化", "system.exe", ""},
+                {"EPB 智能识别", "epb-system.exe", ""},
+                {"数据训练", "EPB_UI.exe", ""}
         };
 
         for (String[] config : buttonConfigs) {
@@ -270,27 +269,18 @@ public class EPBMainWindow extends JFrame {
     }
 
     private void initializeProgramPaths() {
-        configManager = new ConfigManager();
         programPaths = new HashMap<>();
         launcher = new ProgramLauncher();
 
         // Map program names to executable names
-        String[] programs = {"labelme.exe", "gold-data-visual.exe", "epb-detection.exe", "epb-train.exe"};
+        String[] programs = {"Labelme.exe", "system.exe", "epb-system.exe", "EPB_UI.exe"};
         String appDir = new File(System.getProperty("user.dir")).getAbsolutePath();
 
         for (String program : programs) {
-            // First, check if path is saved in config
-            String savedPath = configManager.getProgramPath(program);
-            if (savedPath != null && new File(savedPath).exists()) {
-                programPaths.put(program, savedPath);
-                continue;
-            }
-
-            // Resolve from fixed relative defaults
+            // Resolve from fixed relative defaults every startup (no persisted cache)
             String resolvedPath = resolveDefaultProgramPath(program, appDir);
             if (resolvedPath != null) {
                 programPaths.put(program, resolvedPath);
-                configManager.saveProgramPath(program, resolvedPath);
             }
         }
     }
@@ -398,7 +388,6 @@ public class EPBMainWindow extends JFrame {
             if (resolvedPath != null) {
                 path = resolvedPath;
                 programPaths.put(exeName, resolvedPath);
-                configManager.saveProgramPath(exeName, resolvedPath);
             }
         }
 
@@ -415,8 +404,6 @@ public class EPBMainWindow extends JFrame {
                     File selectedFile = fileChooser.getSelectedFile();
                     path = selectedFile.getAbsolutePath();
                     programPaths.put(exeName, path);
-                    // Save the selected path
-                    configManager.saveProgramPath(exeName, path);
                 }
             }
         }
