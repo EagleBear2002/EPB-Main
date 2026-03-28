@@ -15,6 +15,23 @@ if errorlevel 1 (
     exit /b 1
 )
 
+for /f "delims=" %%I in ('where javac') do (
+    set "JAVAC_PATH=%%~fI"
+    goto :got_javac
+)
+
+:got_javac
+if not defined JAVAC_PATH (
+    echo [ERROR] Unable to resolve javac path.
+    popd
+    exit /b 1
+)
+
+for %%I in ("!JAVAC_PATH!") do set "JAVA_HOME=%%~dpI"
+for %%I in ("!JAVA_HOME!\..") do set "JAVA_HOME=%%~fI"
+
+echo [INFO] Using JAVA_HOME: !JAVA_HOME!
+
 where jpackage >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] jpackage not found. Please use a full JDK 17+ installation.
@@ -30,6 +47,7 @@ if errorlevel 1 (
 )
 
 echo [INFO] Building JAR with Maven...
+set "MAVEN_OPTS=!MAVEN_OPTS! -Dhttps.protocols=TLSv1.2 -Djdk.tls.client.protocols=TLSv1.2"
 call mvn -q -DskipTests clean package
 if errorlevel 1 (
     echo [ERROR] Maven build failed.
@@ -54,7 +72,7 @@ if not exist "%OUTPUT_EXE%" (
 )
 
 set "PARENT_OUTPUT=%~dp0..\epb-main.exe"
-copy /y "%OUTPUT_EXE%" "%PARENT_OUTPUT%" >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; Copy-Item -LiteralPath '!OUTPUT_EXE!' -Destination '!PARENT_OUTPUT!' -Force"
 if errorlevel 1 (
     echo [ERROR] Failed to copy EXE to parent directory.
     popd

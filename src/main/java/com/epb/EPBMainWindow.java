@@ -9,6 +9,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -31,10 +33,10 @@ public class EPBMainWindow extends JFrame {
     private static final Color CARD_BORDER = new Color(198, 210, 228);
 
     private static final Map<String, String> DEFAULT_RELATIVE_PATHS = Map.of(
-            "labelme.exe", "..\\Labelme.exe",
-            "gold-data-visual.exe", "..\\gold-data-visual\\dist\\system\\sysytem.exe",
-            "epb-detection.exe", "..\\epb-detection\\dist\\epb-system\\epb-system.exe",
-            "epb-train.exe", "..\\epb-train\\dist\\*.exe"
+            "labelme.exe", "EPB\\Labelme.exe",
+            "gold-data-visual.exe", "EPB\\gold-data-visual\\dist\\system\\sysytem.exe",
+            "epb-detection.exe", "EPB\\epb-detection\\dist\\epb-system\\epb-system.exe",
+            "epb-train.exe", "EPB\\epb-train\\dist\\*.exe"
     );
 
     private Map<String, String> programPaths;
@@ -299,22 +301,69 @@ public class EPBMainWindow extends JFrame {
             return null;
         }
 
-        if (relativePath.contains("*")) {
-            return resolveWildcardPath(relativePath, appDir);
+        for (File baseDirectory : buildSearchDirectories(appDir)) {
+            String resolvedPath = resolveFromBaseDirectory(relativePath, baseDirectory);
+            if (resolvedPath != null) {
+                return resolvedPath;
+            }
+
+            String compatibilityPath = stripDeploymentPrefix(relativePath);
+            if (!compatibilityPath.equals(relativePath)) {
+                resolvedPath = resolveFromBaseDirectory(compatibilityPath, baseDirectory);
+                if (resolvedPath != null) {
+                    return resolvedPath;
+                }
+            }
         }
 
-        File file = new File(appDir, relativePath);
+        return null;
+    }
+
+    private List<File> buildSearchDirectories(String appDir) {
+        LinkedHashSet<File> directories = new LinkedHashSet<>();
+
+        File currentDirectory = new File(appDir);
+        directories.add(currentDirectory);
+        directories.add(new File(currentDirectory, "EPB"));
+
+        File parentDirectory = currentDirectory.getParentFile();
+        if (parentDirectory != null) {
+            directories.add(parentDirectory);
+            directories.add(new File(parentDirectory, "EPB"));
+        }
+
+        return List.copyOf(directories);
+    }
+
+    private String stripDeploymentPrefix(String relativePath) {
+        String normalized = relativePath.replace('/', '\\');
+        if (normalized.startsWith("EPB\\")) {
+            return normalized.substring("EPB\\".length());
+        }
+        return relativePath;
+    }
+
+    private String resolveFromBaseDirectory(String relativePath, File baseDirectory) {
+        if (baseDirectory == null) {
+            return null;
+        }
+
+        if (relativePath.contains("*")) {
+            return resolveWildcardPath(relativePath, baseDirectory);
+        }
+
+        File file = new File(baseDirectory, relativePath);
         return file.exists() ? file.getAbsolutePath() : null;
     }
 
-    private String resolveWildcardPath(String wildcardRelativePath, String appDir) {
+    private String resolveWildcardPath(String wildcardRelativePath, File baseDirectory) {
         String normalized = wildcardRelativePath
                 .replace("/", File.separator)
                 .replace("\\", File.separator);
 
         int wildcardIndex = normalized.indexOf('*');
         if (wildcardIndex < 0) {
-            File file = new File(appDir, normalized);
+            File file = new File(baseDirectory, normalized);
             return file.exists() ? file.getAbsolutePath() : null;
         }
 
@@ -322,7 +371,7 @@ public class EPBMainWindow extends JFrame {
         String folderPart = separatorIndex >= 0 ? normalized.substring(0, separatorIndex) : ".";
         String suffix = normalized.substring(wildcardIndex + 1).toLowerCase();
 
-        File folder = new File(appDir, folderPart);
+        File folder = new File(baseDirectory, folderPart);
         if (!folder.exists() || !folder.isDirectory()) {
             return null;
         }

@@ -24,13 +24,10 @@ This script will:
 
 Four tool buttons:
 
-- **图片标注** (`..\Labelme.exe`)
-- **数据可视化** (`..\gold-data-visual\dist\system\sysytem.exe`)
-- **EPB 识别** (`..\epb-detection\dist\epb-system\epb-system.exe`)
-- **数据训练** (`..\epb-train\dist\*.exe`)
-
-The launcher resolves these paths relative to the current working directory, with `..\` pointing to the parent directory.
-If a target file is missing, you can still select the executable manually at runtime.
+- **图片标注** (`EPB\Labelme.exe`)
+- **数据可视化** (`EPB\gold-data-visual\dist\system\sysytem.exe`)
+- **EPB 识别** (`EPB\epb-detection\dist\epb-system\epb-system.exe`)
+- **数据训练** (`EPB\epb-train\dist\*.exe`)
 
 ## 打包 EXE / Build EXE
 
