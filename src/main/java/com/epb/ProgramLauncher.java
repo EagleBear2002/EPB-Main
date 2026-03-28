@@ -44,6 +44,10 @@ public class ProgramLauncher {
                 processBuilder = new ProcessBuilder(programPath);
             }
 
+            // Prevent child process from blocking when stdout/stderr buffers fill up.
+            processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
+
             // Set working directory to program's location
             processBuilder.directory(programFile.getParentFile());
 
@@ -87,6 +91,8 @@ public class ProgramLauncher {
 
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.directory(scriptFile.getParentFile());
+            processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
+            processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
 
             Process process = processBuilder.start();
             System.out.println("Launched Python script " + displayName + " (PID: " + process.pid() + ")");
