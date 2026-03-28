@@ -24,12 +24,21 @@ This script will:
 
 Four tool buttons:
 
-- **图片标注** (labelme.exe)
-- **数据可视化** (gold-data-visual.exe)
-- **EPB 识别** (epb-detection.exe)
-- **数据训练** (epb-train.exe)
+- **图片标注** (`..\Labelme.exe`)
+- **数据可视化** (`..\gold-data-visual\dist\system\sysytem.exe`)
+- **EPB 识别** (`..\epb-detection\dist\epb-system\epb-system.exe`)
+- **数据训练** (`..\epb-train\dist\*.exe`)
 
-Place executables in the same directory as `epb.exe`, or select during first run.
+The launcher resolves these paths relative to the current working directory, with `..\` pointing to the parent directory.
+If a target file is missing, you can still select the executable manually at runtime.
+
+## 打包 EXE / Build EXE
+
+```batch
+build-exe.bat
+```
+
+This script builds the project and places `epb-main.exe` in the parent directory of the project root.
 
 ## 源代码 / Source Code
 

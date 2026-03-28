@@ -6,6 +6,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +29,13 @@ public class EPBMainWindow extends JFrame {
     private static final Color BUTTON_PRESSED_BG = new Color(6, 52, 118);
     private static final Color BUTTON_BORDER = new Color(6, 53, 120);
     private static final Color CARD_BORDER = new Color(198, 210, 228);
+
+    private static final Map<String, String> DEFAULT_RELATIVE_PATHS = Map.of(
+            "labelme.exe", "..\\Labelme.exe",
+            "gold-data-visual.exe", "..\\gold-data-visual\\dist\\system\\sysytem.exe",
+            "epb-detection.exe", "..\\epb-detection\\dist\\epb-system\\epb-system.exe",
+            "epb-train.exe", "..\\epb-train\\dist\\*.exe"
+    );
 
     private Map<String, String> programPaths;
     private ProgramLauncher launcher;
@@ -127,7 +135,7 @@ public class EPBMainWindow extends JFrame {
 
                 ButtonModel model = getModel();
                 Color fillColor = BUTTON_BG;
-                int shadowOffset = 4;
+                int shadowOffset = 3;
                 
                 if (model.isPressed()) {
                     fillColor = BUTTON_PRESSED_BG;
@@ -136,29 +144,15 @@ public class EPBMainWindow extends JFrame {
                     fillColor = BUTTON_HOVER_BG;
                 }
 
-                // Draw multi-layer shadow for strong 3D effect when not pressed
+                // Draw subtle shadow when not pressed
                 if (!model.isPressed()) {
-                    // Outer shadow layer
-                    g2.setColor(new Color(0, 0, 0, 25));
-                    g2.fillRoundRect(shadowOffset + 1, shadowOffset + 1, getWidth() - shadowOffset - 1, getHeight() - shadowOffset - 1, 14, 14);
-                    // Inner shadow layer
-                    g2.setColor(new Color(0, 0, 0, 50));
+                    g2.setColor(new Color(0, 0, 0, 15));
                     g2.fillRoundRect(shadowOffset, shadowOffset, getWidth() - shadowOffset, getHeight() - shadowOffset, 14, 14);
                 }
 
                 // Draw main button background
                 g2.setColor(fillColor);
                 g2.fillRoundRect(0, 0, getWidth() - shadowOffset, getHeight() - shadowOffset, 14, 14);
-
-                // Draw multiple highlight layers for pronounced 3D effect
-                if (!model.isPressed()) {
-                    // Outer highlight
-                    g2.setColor(new Color(255, 255, 255, 100));
-                    g2.fillRoundRect(2, 2, getWidth() - shadowOffset - 4, 12, 12, 12);
-                    // Inner highlight
-                    g2.setColor(new Color(255, 255, 255, 60));
-                    g2.fillRoundRect(3, 3, getWidth() - shadowOffset - 6, 6, 10, 10);
-                }
 
                 g2.dispose();
                 super.paintComponent(g);
@@ -169,7 +163,7 @@ public class EPBMainWindow extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 ButtonModel model = getModel();
-                int shadowOffset = model.isPressed() ? 1 : 4;
+                int shadowOffset = model.isPressed() ? 1 : 3;
                 g2.setColor(BUTTON_BORDER);
                 g2.drawRoundRect(0, 0, getWidth() - shadowOffset - 1, getHeight() - shadowOffset - 1, 14, 14);
                 g2.dispose();
@@ -221,18 +215,10 @@ public class EPBMainWindow extends JFrame {
                 int x = (getWidth() - fm.stringWidth(text)) / 2;
                 int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
 
-                // Draw shadow
-                g2.setColor(new Color(0, 0, 0, 120));
+                // Draw subtle shadow
+                g2.setColor(new Color(0, 0, 0, 80));
                 g2.setFont(font);
                 g2.drawString(text, x + 1, y + 1);
-                
-                // Draw black border outline (4 directions)
-                g2.setColor(Color.BLACK);
-                g2.setFont(font);
-                g2.drawString(text, x - 1, y);
-                g2.drawString(text, x + 1, y);
-                g2.drawString(text, x, y - 1);
-                g2.drawString(text, x, y + 1);
 
                 // Draw main text
                 g2.setColor(color);
@@ -297,19 +283,75 @@ public class EPBMainWindow extends JFrame {
                 programPaths.put(program, savedPath);
                 continue;
             }
-            
-            // Then check in current directory
-            String fullPath = appDir + File.separator + program;
-            File file = new File(fullPath);
-            if (file.exists()) {
-                programPaths.put(program, fullPath);
-                configManager.saveProgramPath(program, fullPath);
+
+            // Resolve from fixed relative defaults
+            String resolvedPath = resolveDefaultProgramPath(program, appDir);
+            if (resolvedPath != null) {
+                programPaths.put(program, resolvedPath);
+                configManager.saveProgramPath(program, resolvedPath);
             }
         }
     }
 
+    private String resolveDefaultProgramPath(String programName, String appDir) {
+        String relativePath = DEFAULT_RELATIVE_PATHS.get(programName);
+        if (relativePath == null || relativePath.isBlank()) {
+            return null;
+        }
+
+        if (relativePath.contains("*")) {
+            return resolveWildcardPath(relativePath, appDir);
+        }
+
+        File file = new File(appDir, relativePath);
+        return file.exists() ? file.getAbsolutePath() : null;
+    }
+
+    private String resolveWildcardPath(String wildcardRelativePath, String appDir) {
+        String normalized = wildcardRelativePath
+                .replace("/", File.separator)
+                .replace("\\", File.separator);
+
+        int wildcardIndex = normalized.indexOf('*');
+        if (wildcardIndex < 0) {
+            File file = new File(appDir, normalized);
+            return file.exists() ? file.getAbsolutePath() : null;
+        }
+
+        int separatorIndex = normalized.lastIndexOf(File.separator, wildcardIndex);
+        String folderPart = separatorIndex >= 0 ? normalized.substring(0, separatorIndex) : ".";
+        String suffix = normalized.substring(wildcardIndex + 1).toLowerCase();
+
+        File folder = new File(appDir, folderPart);
+        if (!folder.exists() || !folder.isDirectory()) {
+            return null;
+        }
+
+        File[] matches = folder.listFiles((dir, name) -> {
+            String lowerName = name.toLowerCase();
+            return suffix.isEmpty() || lowerName.endsWith(suffix);
+        });
+
+        if (matches == null || matches.length == 0) {
+            return null;
+        }
+
+        Arrays.sort(matches, (a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        return matches[0].getAbsolutePath();
+    }
+
     private void launchProgram(String displayName, String exeName) {
         String path = programPaths.get(exeName);
+
+        if (path == null || path.isEmpty() || !new File(path).exists()) {
+            String appDir = new File(System.getProperty("user.dir")).getAbsolutePath();
+            String resolvedPath = resolveDefaultProgramPath(exeName, appDir);
+            if (resolvedPath != null) {
+                path = resolvedPath;
+                programPaths.put(exeName, resolvedPath);
+                configManager.saveProgramPath(exeName, resolvedPath);
+            }
+        }
 
         if (path == null || path.isEmpty()) {
             // Ask user to select the executable
